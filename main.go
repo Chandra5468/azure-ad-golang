@@ -40,7 +40,7 @@ func main() {
 	*/
 
 	// Establish Mongodb connection
-	mango.CreateConnection()
+	client := mango.CreateConnection()
 
 	// initiate router
 
@@ -72,6 +72,13 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
+	// Disconnect Mongo before shutdown
+	err = client.Disconnect(context.TODO())
+	if err != nil {
+		slog.Error("failed to disconnect mongo database during server shutdown")
+	} else {
+		slog.Info("mongodb successfully disconnected")
+	}
 	err = server.Shutdown(ctx) // We are giving a time of 5 seconds before shutting down. So that any other running processes can be completed
 
 	if err != nil {
@@ -85,7 +92,5 @@ func main() {
 
 	To Build
 	APP_ENV=local go build -o myapp
-	or
-	APP_ENV=local go build -o cmd/main.go
 	*/
 }
