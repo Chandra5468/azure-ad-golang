@@ -41,11 +41,16 @@ func main() {
 
 	// Establish Mongodb connection
 	client := mango.CreateConnection()
+	// mango.CreateConnection()
 
 	// initiate router
 
 	router := http.NewServeMux()
 	router.HandleFunc("GET /v1/hi", func(w http.ResponseWriter, r *http.Request) {
+		// for i := 0; i < 1000000000; i++ {
+		// 	fmt.Println(i)
+		// }
+		// mango.Test()
 		json.NewEncoder(w).Encode("Namaste modi")
 	})
 	// Setup and Listen server on specific port mentioned in .env file
@@ -63,7 +68,10 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Fatal(server.ListenAndServe())
+		err := (server.ListenAndServe())
+		if err != nil && err != http.ErrServerClosed {
+			slog.Error("server failed to start", slog.String("error", err.Error()))
+		}
 	}()
 
 	<-done // this will be blocking until some os signal is received
@@ -73,6 +81,7 @@ func main() {
 
 	defer cancel()
 	// Disconnect Mongo before shutdown
+	// err = client.Disconnect(context.TODO())
 	err = client.Disconnect(context.TODO())
 	if err != nil {
 		slog.Error("failed to disconnect mongo database during server shutdown")
@@ -80,12 +89,12 @@ func main() {
 		slog.Info("mongodb successfully disconnected")
 	}
 	err = server.Shutdown(ctx) // We are giving a time of 5 seconds before shutting down. So that any other running processes can be completed
-
 	if err != nil {
 		slog.Error("failed to shutdown server", slog.String("error", err.Error()))
+	} else {
+		slog.Info("server shutdown successful")
 	}
 
-	slog.Info("server shutdown successful")
 	/*Command to run
 
 	APP_ENV=local go run main.go
