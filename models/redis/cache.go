@@ -5,14 +5,15 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"sync"
 
 	"github.com/redis/go-redis/v9"
 )
 
 var redisClient *redis.Client
-var redisRwMtx *sync.Mutex
-var ctx = context.Background()
+
+// var redisRwMtx *sync.Mutex No need for function based application. Needed for global variables and palces where writing is frequent
+// var ctx = context.Background() // Do not use global context. As each operation might requeire differnt context with timeout
+// Try to use context from api request. Which is r.Context pass it into get and set
 
 func CreateConnection() *redis.Client {
 	redisClient = redis.NewClient(&redis.Options{
@@ -20,8 +21,9 @@ func CreateConnection() *redis.Client {
 		Password: "welcome@123", // No password set
 		DB:       0,             // Use default DB
 		Protocol: 2,             // Connection protocol
+		// PoolSize: 10,
 	})
-	err := redisClient.Ping(ctx).Err()
+	err := redisClient.Ping(context.TODO()).Err()
 
 	if err != nil {
 		log.Fatal("error connecting to redis server ", err)
@@ -32,18 +34,10 @@ func CreateConnection() *redis.Client {
 	return redisClient
 }
 
-func CacheRead() {
-
+func CacheRead(ctx context.Context, key string) (string, error) { // Here in ctx try to pass api request r.Context here
+	return redisClient.Get(ctx, key).Result()
 }
 
-func CacheWrite() {
-
-}
-
-func CacheWriteWithTime() {
-
-}
-
-func KeyTimeInterval() {
-
+func CacheWrite(ctx context.Context, key string, value any) error {
+	return redisClient.Set(ctx, key, value, 0).Err()
 }
