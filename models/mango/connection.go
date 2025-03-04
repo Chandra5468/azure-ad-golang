@@ -25,6 +25,7 @@ func CreateConnection() *mongo.Client {
 	// Creating a new client and connecting to server
 	client, err := mongo.Connect(opts)
 
+	// Should not start the server.
 	if err != nil {
 		log.Fatalf("error while connecting mongo %v ", err.Error())
 	}

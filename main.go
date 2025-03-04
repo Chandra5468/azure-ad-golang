@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Chandra5468/azure-ad-golang/models/mango"
+	"github.com/Chandra5468/azure-ad-golang/models/redis"
 	"github.com/joho/godotenv"
 )
 
@@ -32,6 +33,9 @@ func main() {
 	}
 
 	// initiate cors
+	/*
+		Cors like accept headers, accept request types etc.... for all responses here
+	*/
 
 	/* Implement these body parser in golang
 
@@ -42,6 +46,9 @@ func main() {
 	// Establish Mongodb connection
 	client := mango.CreateConnection()
 	// mango.CreateConnection()
+
+	// Establish redis connection
+	redisClient := redis.CreateConnection()
 
 	// initiate router
 
@@ -76,7 +83,7 @@ func main() {
 
 	<-done // this will be blocking until some os signal is received
 	slog.Info("shutting down server")
-
+	close(done)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
@@ -87,6 +94,12 @@ func main() {
 		slog.Error("failed to disconnect mongo database during server shutdown")
 	} else {
 		slog.Info("mongodb successfully disconnected")
+	}
+	err = redisClient.Close()
+	if err != nil {
+		slog.Error("failed to disconnect redis client to server")
+	} else {
+		slog.Info("redis disconnected successfully")
 	}
 	err = server.Shutdown(ctx) // We are giving a time of 5 seconds before shutting down. So that any other running processes can be completed
 	if err != nil {
