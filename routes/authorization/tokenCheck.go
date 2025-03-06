@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Chandra5468/azure-ad-golang/helpers"
+	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
 	"github.com/Chandra5468/azure-ad-golang/models/redis"
 )
 
@@ -61,7 +62,15 @@ func CheckCredentials(next http.HandlerFunc) http.HandlerFunc {
 		keyExpiry, _ := redis.CacheKeyTTL(r.Context(), accessTokenKey)
 		accessToken, ok := token[accessTokenKey]
 		if ok || keyExpiry*time.Second < 300 {
+			productDetails, err := tenants.GetAzureConfigs(tenantId, r.Context())
+			if err != nil {
+				helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("not able to get azure configurations from mongo"))
+			}
+			if productDetails.Products.AzureActiveDirectory.GrantType == "password" {
 
+			} else {
+				helpers.ErrorFormatter(w, http.StatusBadRequest, errors.New("out of scope azure connectivity"))
+			}
 		} else if ok && accessToken != "" {
 			next.ServeHTTP(w, r)
 		} else {
