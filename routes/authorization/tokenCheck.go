@@ -1,8 +1,25 @@
 package authorization
 
-import "net/http"
+import (
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+	"time"
 
-func CheckCredentials(next http.Handler) http.HandlerFunc {
+	"github.com/Chandra5468/azure-ad-golang/helpers"
+	"github.com/Chandra5468/azure-ad-golang/models/redis"
+)
+
+// type AzureAccessTokenCheck struct {
+// 	TokenType   string `json:"token_type"`
+// 	Scope       string `json:"scope"`
+// 	ExpiresIn   string `json:"expires_in"`
+// 	AccessToken string `json:"access_token"`
+// }
+
+// func CheckCredentials(next http.Handler) http.HandlerFunc {
+func CheckCredentials(next http.HandlerFunc) http.HandlerFunc {
 	// http.Handle() //
 	// http.HandleFunc() // Direct method route mentioning and handler mentioning. Mostly used for simple application direct routing
 	// http.Handler // Interface, any struct of our own type which is assigned to this interface can implement this.
@@ -29,8 +46,26 @@ func CheckCredentials(next http.Handler) http.HandlerFunc {
 		--- This will not give an error, as we are implementing http.Handler interface by passing type HandlerFunc in it.
 	*/
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// tenantId := r.Header.Get("x-tenant-id")
-		// azureAccessToken :=
-		next.ServeHTTP(w, r)
+		tenantId := r.Header.Get("x-tenant-id")
+		// var token AzureAccessTokenCheck
+		accessTokenKey := "azureAccessToken" + tenantId
+		var token map[string]string
+		azureAccessTokenString, err := redis.CacheRead(r.Context(), accessTokenKey)
+		if err != nil {
+			slog.Error("error while reading from redis_", "error", err.Error())
+			helpers.ErrorFormatter(w, http.StatusInternalServerError, err)
+		} else {
+			// json.NewDecoder().Decode()
+			json.Unmarshal([]byte(azureAccessTokenString), &token)
+		}
+		keyExpiry, _ := redis.CacheKeyTTL(r.Context(), accessTokenKey)
+		accessToken, ok := token[accessTokenKey]
+		if ok || keyExpiry*time.Second < 300 {
+
+		} else if ok && accessToken != "" {
+			next.ServeHTTP(w, r)
+		} else {
+			helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("unable to get any information on access token"))
+		}
 	})
 }

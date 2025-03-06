@@ -1,61 +1,58 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
-func GetMicrosoftAuthenticatorApp(userPrincipalName, azureAccessToken string) ([]byte, error) {
-	// options := make(map[string]string)
-	// options["method"] = "GET"
+/*
+		{
+			"id": "fac569a7-5eb8-4df7-b9ae-8886ba87f23a",
+			"displayName": "CPH1901",
+			"deviceTag": "SoftwareTokenActivated",
+			"phoneAppVersion": "6.2501.0191",
+			"createdDateTime": null
+	    }
+*/
+type GetMicrosoftAuthResp struct {
+	Value MicrosoftAuthInfo `json:"value"`
+}
+type MicrosoftAuthInfo struct {
+	DisplayName     string `json:"displayName"`
+	DeviceTag       string `json:"deviceTag"`
+	PhoneAppVersion string `json:"phoneAppVersion"`
+	// createdDateTime
+}
 
-	// json.Marshal(map[string]string{
-	// 	""
-	// }) GET request does not need body
-
+func GetMicrosoftAuthenticatorApp(userPrincipalName, azureAccessToken string) (*GetMicrosoftAuthResp, error) {
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/microsoftAuthenticatorMethods", userPrincipalName)
-
+	var getAuthApp GetMicrosoftAuthResp
 	req, err := http.NewRequest(http.MethodGet, url, nil)
-
 	if err != nil {
-		// Here handle an error sending message
+		return nil, err
 	}
 	accessToken := fmt.Sprintf("Bearer %v", azureAccessToken)
 	req.Header.Add("Authorization", accessToken)
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
-
 	if err != nil {
-
+		return nil, err
 	}
 
 	defer res.Body.Close()
 
-	byteData, err := io.ReadAll(res.Body)
+	// byteData, err := io.ReadAll(res.Body) // Use it if you want to use unmarshall
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// res.Body.Read() Use this if the response is too large
-	/* IF Response is too large like video data or file reading use below code
-		for {
-	        n, err := resp.Body.Read(buffer)
-	        if err != nil {
-	            if err == io.EOF {
-	                break // End of stream
-	            }
-	            return err
-	        }
-
-	        _, err = file.Write(buffer[:n]) // Write the chunk to the file
-	        if err != nil {
-	            return err
-	        }
-	    }
-	*/
-
+	// err = json.Unmarshal(byteData, &getAuthApp)
+	err = json.NewDecoder(res.Body).Decode(&getAuthApp)
 	if err != nil {
-
+		return nil, err
 	}
 
-	return byteData, nil
+	return &getAuthApp, nil
 }

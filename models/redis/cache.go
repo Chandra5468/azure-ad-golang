@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -40,4 +41,12 @@ func CacheRead(ctx context.Context, key string) (string, error) { // Here in ctx
 
 func CacheWrite(ctx context.Context, key string, value any) error {
 	return redisClient.Set(ctx, key, value, 0).Err()
+}
+
+func CacheWriteWithExpiry(ctx context.Context, key string, value any, expiry time.Duration) error {
+	return redisClient.Set(ctx, key, value, expiry).Err()
+}
+
+func CacheKeyTTL(ctx context.Context, key string) (time.Duration, error) {
+	return redisClient.TTL(ctx, key).Result()
 }
