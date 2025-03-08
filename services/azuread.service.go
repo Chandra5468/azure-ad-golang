@@ -1,9 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
 )
 
 /*
@@ -23,6 +26,45 @@ type MicrosoftAuthInfo struct {
 	DeviceTag       string `json:"deviceTag"`
 	PhoneAppVersion string `json:"phoneAppVersion"`
 	// createdDateTime
+}
+
+type AccessTokenFromPG struct {
+	TokenType    string `json:"token_type"`
+	Scope        string `json:"scope"`
+	ExpiresIn    string `json:"expires_in"`
+	ExtExpiresIn string `json:"ext_expires_in"`
+	AccessToken  string `json:"access_token"`
+}
+
+func GetAccessTokenPGgrant(details *tenants.AzureActiveDirectoryProduct) (*AccessTokenFromPG, error) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(&details) // check if it is giving data in json format to NewRequest or not.
+	// jsonBody := []byte(`{client_id:}`)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, details.URL, &buf)
+
+	// what does bytes.Buffer do
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var pgAT AccessTokenFromPG
+	err = json.NewDecoder(res.Body).Decode(&pgAT)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &pgAT, nil
 }
 
 func GetMicrosoftAuthenticatorApp(userPrincipalName, azureAccessToken string) (*GetMicrosoftAuthResp, error) {
