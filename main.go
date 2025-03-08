@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/Chandra5468/azure-ad-golang/models/mango"
 	"github.com/Chandra5468/azure-ad-golang/models/redis"
+	v1 "github.com/Chandra5468/azure-ad-golang/routes/v1"
 	"github.com/joho/godotenv"
 )
 
@@ -53,15 +53,12 @@ func main() {
 	// initiate router
 
 	router := http.NewServeMux()
-	router.HandleFunc("GET /v1/hi", func(w http.ResponseWriter, r *http.Request) {
-		// for i := 0; i < 1000000000; i++ {
-		// 	fmt.Println(i)
-		// }
-		// mango.Test()
-		json.NewEncoder(w).Encode("Namaste modi")
-	})
 	// Setup and Listen server on specific port mentioned in .env file
 	// Handling graceful shutdown
+
+	// Register routes from each file
+
+	v1.AzureRoutes(router)
 	server := http.Server{
 		Addr:    os.Getenv("APP_URL"),
 		Handler: router,
