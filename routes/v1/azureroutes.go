@@ -8,6 +8,6 @@ import (
 )
 
 func AzureRoutes(router *http.ServeMux) {
-	router.HandleFunc("POST /azuread/users", authorization.CheckCredentials(controllers.GetUserAllInfo))
+	router.HandleFunc("POST /azuread/user/info", authorization.CheckCredentials(controllers.GetUserAllInfo))
 	router.HandleFunc("POST /azuread/get/microsoftAuthenticator", authorization.CheckCredentials(controllers.GetMicrosoftAuthenticatorApp))
 }
