@@ -37,6 +37,24 @@ type AccessTokenFromPG struct {
 	AccessToken  string `json:"access_token"`
 }
 
+type UserInfo struct {
+	DisplayName           string `json:"displayName"`
+	Mail                  string `json:"mail"`
+	AccountEnabled        string `json:"accountEnabled"`
+	CreatedDateTime       string `json:"createdDateTime"`
+	LastPWDChangeDateTime string `json:"lastPasswordChangeDateTime"`
+	Department            string `json:"department"`
+	BusinessPhones        string `json:"businessPhones"`
+	GivenName             string `json:"givenName"`
+	JobTitle              string `json:"jobTitle"`
+	OfficeLocation        string `json:"officeLocation"`
+	PreferredLanguage     string `json:"preferredLanguage"`
+	Surname               string `json:"surname"`
+	UserprincipleName     string `json:"userPrincipalName"`
+}
+
+type PhoneAuthenticator struct{}
+
 func GetAccessTokenPGgrant(details *tenants.AzureActiveDirectoryProduct) (*AccessTokenFromPG, error) {
 	// var buf bytes.Buffer // what does bytes.Buffer do
 	// var buf2 bytes.Reader // what does bytes.Reader do
@@ -105,3 +123,37 @@ func GetMicrosoftAuthenticatorApp(userPrincipalName, azureAccessToken string) (*
 
 	return &getAuthApp, nil
 }
+
+func GetUserInfo(userPrincipalName, azureAccessToken string) (*UserInfo, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s?$select=displayName,mail,accountEnabled,createdDateTime,lastPasswordChangeDateTime,department,businessPhones,givenName,jobTitle,officeLocation,surname,userPrincipalName", userPrincipalName)
+
+	var uI UserInfo
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+
+	if err != nil {
+		return nil, err
+	}
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	err = json.NewDecoder(res.Body).Decode(&uI)
+
+	if err != nil {
+		return nil, err
+	}
+	// res.StatusCode ==200
+	return &uI, nil
+}
+
+// func GetPhoneAuthenticatorInfo(userPrincipalName, mobilePhoneId, azureAccessToken string) (string, error) {
+
+// }

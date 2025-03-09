@@ -40,7 +40,7 @@ func CacheRead(ctx context.Context, key string) (string, error) { // Here in ctx
 	return redisClient.Get(ctx, key).Result()
 }
 
-func CacheWrite(ctx context.Context, key string, value any) error {
+func CacheWrite(ctx context.Context, key string, value string) error {
 	return redisClient.Set(ctx, key, value, 0).Err()
 }
 
