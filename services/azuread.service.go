@@ -98,7 +98,7 @@ func GetMicrosoftAuthenticatorApp(userPrincipalName, azureAccessToken string) (*
 	// }
 
 	// err = json.Unmarshal(byteData, &getAuthApp)
-	err = json.NewDecoder(res.Body).Decode(&getAuthApp)
+	err = json.NewDecoder(res.Body).Decode(&getAuthApp.Value)
 	if err != nil {
 		return nil, err
 	}
