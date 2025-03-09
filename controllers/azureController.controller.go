@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/Chandra5468/azure-ad-golang/helpers"
 	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
@@ -57,7 +58,11 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 			helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("marshalling error of azure labelling"))
 			return
 		}
-		redis.CacheWrite(r.Context(), "azure_ad_labelling_"+tenantId, string(b))
+		err = redis.CacheWrite(r.Context(), "azure_ad_labelling_"+tenantId, string(b))
+		if err != nil {
+			helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("error while writing labelling to cache"))
+			return
+		}
 	} else {
 		json.Unmarshal([]byte(labelConfigs), &lbl) // converting string to struct for better usage convinience
 	}
@@ -71,7 +76,7 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 
 	dataSent[lbl.Labelling.UserprincipleName] = userInfo.UserprincipleName
 	dataSent[lbl.Labelling.DisplayName] = userInfo.DisplayName
-	dataSent[lbl.Labelling.AccountEnabled] = userInfo.AccountEnabled
+	dataSent[lbl.Labelling.AccountEnabled] = strconv.FormatBool(userInfo.AccountEnabled)
 
 	// Calling Authententicators api here. using go routines for faster processing
 

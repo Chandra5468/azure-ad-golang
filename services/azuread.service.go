@@ -38,19 +38,19 @@ type AccessTokenFromPG struct {
 }
 
 type UserInfo struct {
-	DisplayName           string `json:"displayName"`
-	Mail                  string `json:"mail"`
-	AccountEnabled        string `json:"accountEnabled"`
-	CreatedDateTime       string `json:"createdDateTime"`
-	LastPWDChangeDateTime string `json:"lastPasswordChangeDateTime"`
-	Department            string `json:"department"`
-	BusinessPhones        string `json:"businessPhones"`
-	GivenName             string `json:"givenName"`
-	JobTitle              string `json:"jobTitle"`
-	OfficeLocation        string `json:"officeLocation"`
-	PreferredLanguage     string `json:"preferredLanguage"`
-	Surname               string `json:"surname"`
-	UserprincipleName     string `json:"userPrincipalName"`
+	DisplayName           string   `json:"displayName"`
+	Mail                  string   `json:"mail"`
+	AccountEnabled        bool     `json:"accountEnabled"`
+	CreatedDateTime       string   `json:"createdDateTime"`
+	LastPWDChangeDateTime string   `json:"lastPasswordChangeDateTime"`
+	Department            string   `json:"department"`
+	BusinessPhones        []string `json:"businessPhones"`
+	GivenName             string   `json:"givenName"`
+	JobTitle              string   `json:"jobTitle"`
+	OfficeLocation        string   `json:"officeLocation"`
+	PreferredLanguage     string   `json:"preferredLanguage"`
+	Surname               string   `json:"surname"`
+	UserprincipleName     string   `json:"userPrincipalName"`
 }
 
 type PhoneAuthenticator struct{}
