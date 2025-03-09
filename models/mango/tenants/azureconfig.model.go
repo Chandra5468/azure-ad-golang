@@ -23,14 +23,14 @@ type IpaasProduct struct {
 }
 
 type AzureActiveDirectoryProduct struct {
-	GrantType    string `bson:"grant_type"`
-	ClientId     string `bson:"client_id"`
-	ClientSecret string `bson:"client_secret"`
-	UserName     string `bson:"username"`
-	Password     string `bson:"password"`
-	Resource     string `bson:"resource"`
-	Scope        string `bson:"scope"`
-	URL          string `bson:"url"`
+	GrantType    string `bson:"grant_type" json:"grant_type"`
+	ClientId     string `bson:"client_id" json:"client_id"`
+	ClientSecret string `bson:"client_secret" json:"client_secret"`
+	UserName     string `bson:"username" json:"username"`
+	Password     string `bson:"password" json:"password"`
+	Resource     string `bson:"resource" json:"resource"`
+	Scope        string `bson:"scope" json:"scope"`
+	URL          string `bson:"url" json:"url"`
 }
 
 func GetAzureConfigs(tenantId string, ctx context.Context) (*Products, error) {

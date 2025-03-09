@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -43,8 +44,10 @@ func CacheWrite(ctx context.Context, key string, value any) error {
 	return redisClient.Set(ctx, key, value, 0).Err()
 }
 
-func CacheWriteWithExpiry(ctx context.Context, key string, value any, expiry time.Duration) error {
-	return redisClient.Set(ctx, key, value, expiry).Err()
+func CacheWriteWithExpiry(ctx context.Context, key string, value any, expiry int) error {
+	fmt.Println("this is expiry", expiry)
+	ti := time.Duration(expiry) * time.Second
+	return redisClient.Set(ctx, key, value, ti).Err()
 }
 
 func CacheKeyTTL(ctx context.Context, key string) (time.Duration, error) {

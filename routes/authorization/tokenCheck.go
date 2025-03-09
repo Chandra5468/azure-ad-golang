@@ -2,11 +2,8 @@ package authorization
 
 import (
 	"errors"
-	"log"
-	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/Chandra5468/azure-ad-golang/helpers"
 	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
@@ -44,17 +41,17 @@ func CheckCredentials(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tenantId := r.Header.Get("x-tenant-id")
 		accessTokenKey := "azureAccessToken_" + tenantId
-		azureAccessTokenString, err := redis.CacheRead(r.Context(), accessTokenKey)
-		if err != nil {
-			slog.Error("error while reading from redis_", "error", err.Error())
-			helpers.ErrorFormatter(w, http.StatusInternalServerError, err)
-			return
-		}
-		keyExpiry, err := redis.CacheKeyTTL(r.Context(), accessTokenKey)
-		if err != nil { // comment this and use _ for above err
-			log.Println("key timeout error", keyExpiry)
-		}
-		if keyExpiry*time.Second < 300 {
+		azureAccessTokenString, _ := redis.CacheRead(r.Context(), accessTokenKey)
+		// if err != nil {
+		// 	slog.Error("error while reading from redis_", "error", err.Error())
+		// 	helpers.ErrorFormatter(w, http.StatusInternalServerError, err)
+		// 	return
+		// }
+		keyExpiry, _ := redis.CacheKeyTTL(r.Context(), accessTokenKey)
+		// if err != nil { // comment this and use _ for above err
+		// 	log.Println("key timeout error", keyExpiry)
+		// }
+		if keyExpiry == -2 || keyExpiry.Seconds() < 300 || azureAccessTokenString == "" {
 			productDetails, err := tenants.GetAzureConfigs(tenantId, r.Context())
 			if err != nil {
 				helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("not able to get azure configurations from mongo"))
@@ -67,7 +64,11 @@ func CheckCredentials(next http.HandlerFunc) http.HandlerFunc {
 					return
 				} else {
 					intTime, _ := strconv.Atoi(accessToken.ExpiresIn)
-					redis.CacheWriteWithExpiry(r.Context(), accessTokenKey, accessToken.AccessToken, time.Duration(time.Duration(intTime).Seconds()))
+					err = redis.CacheWriteWithExpiry(r.Context(), accessTokenKey, accessToken.AccessToken, intTime)
+					if err != nil {
+						helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("issue while setting access token to redis with expiry"))
+						return
+					}
 					next.ServeHTTP(w, r)
 				}
 			} else {

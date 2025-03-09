@@ -1,10 +1,11 @@
 package services
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
 )
@@ -37,19 +38,25 @@ type AccessTokenFromPG struct {
 }
 
 func GetAccessTokenPGgrant(details *tenants.AzureActiveDirectoryProduct) (*AccessTokenFromPG, error) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(&details) // check if it is giving data in json format to NewRequest or not.
-	// jsonBody := []byte(`{client_id:}`)
+	// var buf bytes.Buffer // what does bytes.Buffer do
+	// var buf2 bytes.Reader // what does bytes.Reader do
+	// bytes.NewBufferString() or string.NewReader() when to use these and what do they do ?
+	data := url.Values{}
+
+	data.Set("grant_type", details.GrantType)
+	data.Set("client_id", details.ClientId)
+	data.Set("client_secret", details.ClientSecret)
+	data.Set("scope", details.Scope)
+	data.Set("username", details.UserName)
+	data.Set("password", details.Password)
+	data.Set("resource", details.Resource)
+
+	req, err := http.NewRequest(http.MethodPost, details.URL, strings.NewReader(data.Encode()))
+	// fmt.Println(buf.String())
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(http.MethodPost, details.URL, &buf)
-
-	// what does bytes.Buffer do
-	if err != nil {
-		return nil, err
-	}
-
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res, err := http.DefaultClient.Do(req)
 
 	if err != nil {
@@ -74,7 +81,7 @@ func GetMicrosoftAuthenticatorApp(userPrincipalName, azureAccessToken string) (*
 	if err != nil {
 		return nil, err
 	}
-	accessToken := fmt.Sprintf("Bearer %v", azureAccessToken)
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
 	req.Header.Add("Authorization", accessToken)
 	req.Header.Add("Content-Type", "application/json")
 
