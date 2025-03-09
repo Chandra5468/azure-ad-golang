@@ -79,7 +79,7 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 	dataSent[lbl.Labelling.AccountEnabled] = strconv.FormatBool(userInfo.AccountEnabled)
 
 	// Calling Authententicators api here. using go routines for faster processing
-
+	helpers.ResponseFormatter(w, http.StatusOK, &dataSent)
 }
 
 func GetMicrosoftAuthenticatorApp(w http.ResponseWriter, r *http.Request) {
