@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/Chandra5468/azure-ad-golang/helpers"
 	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
@@ -15,6 +16,11 @@ import (
 type BodyCapture struct {
 	TenantId          string `json:"x-tenant-id"`
 	UserprincipleName string `json:"userPrincipalName"`
+}
+type AuthInfo struct {
+	AuthName string
+	Data     string
+	Err      error
 }
 
 func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
@@ -79,8 +85,81 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 	dataSent[lbl.Labelling.AccountEnabled] = strconv.FormatBool(userInfo.AccountEnabled)
 	// dataSent[lbl.Labelling.BusinessPhones] = userInfo.BusinessPhones
 	dataSent[lbl.Labelling.LastPWDChangeDateTime] = userInfo.LastPWDChangeDateTime
+
+	// Go routine callings- Total 4 go routines
 	// Calling Authententicators api here. using go routines for faster processing
-	// if dataSent[lbl.la]
+
+	// Handling phone authenticators
+	var wg *sync.WaitGroup
+	wg.Add(4)
+	resultChan := make(chan AuthInfo, 4)
+	if lbl.Labelling.MfaMobileNumber != "" {
+		go func() {
+			defer wg.Done()
+			data, err := services.GetPhoneAuthenticatorInfo(details.UserprincipleName, "3179e48a-750b-4051-897c-87b9720928f7", azureAccessToken)
+			resultChan <- AuthInfo{
+				AuthName: lbl.Labelling.MfaMobileNumber,
+				Data:     data,
+				Err:      err,
+			}
+		}()
+	}
+	if lbl.Labelling.MfaAlternativeMobileNumber != "" {
+		go func() {
+			defer wg.Done()
+			data, err := services.GetPhoneAuthenticatorInfo(details.UserprincipleName, "b6332ec1-7057-4abe-9331-3d72feddfe41", azureAccessToken)
+			resultChan <- AuthInfo{
+				AuthName: lbl.Labelling.MfaAlternativeMobileNumber,
+				Data:     data,
+				Err:      err,
+			}
+		}()
+	}
+	if lbl.Labelling.MfaOfficeMobileNumber != "" {
+		go func() {
+			defer wg.Done()
+			data, err := services.GetPhoneAuthenticatorInfo(details.UserprincipleName, "e37fc753-ff3b-4958-9484-eaa9425c82bc", azureAccessToken)
+			resultChan <- AuthInfo{
+				AuthName: lbl.Labelling.MfaOfficeMobileNumber,
+				Data:     data,
+				Err:      err,
+			}
+		}()
+	}
+
+	// Handling MS Authenticator and getting device information
+
+	if lbl.Labelling.MicrosoftAuthenticatorApp != "" {
+		go func() {
+			defer wg.Done()
+			data, err := services.MicrosoftAuthDevice(details.UserprincipleName, azureAccessToken)
+			resultChan <- AuthInfo{
+				AuthName: lbl.Labelling.MicrosoftAuthenticatorApp,
+				Data:     data,
+				Err:      err,
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	for x := range resultChan {
+		if x.Err == nil {
+			switch x.AuthName {
+			case "mobile":
+				dataSent[lbl.Labelling.MfaMobileNumber] = x.Data
+			case "alternative mobile":
+				dataSent[lbl.Labelling.MfaAlternativeMobileNumber] = x.Data
+			case "office no":
+				dataSent[lbl.Labelling.MfaOfficeMobileNumber] = x.Data
+			case "MSAuth":
+				dataSent[lbl.Labelling.MicrosoftAuthenticatorApp] = x.Data
+			}
+		} else {
+			dataSent[x.AuthName] = "NA"
+		}
+	}
+
 	helpers.ResponseFormatter(w, http.StatusOK, &dataSent)
 }
 

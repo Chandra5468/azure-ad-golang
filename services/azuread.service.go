@@ -156,7 +156,7 @@ func GetUserInfo(userPrincipalName, azureAccessToken string) (*UserInfo, error) 
 	return &uI, nil
 }
 
-func GetPhoneAuthenticatorInfo(userPrincipalName, mobilePhoneId, azureAccessToken string) (*PhoneAuthenticator, error) {
+func GetPhoneAuthenticatorInfo(userPrincipalName, mobilePhoneId, azureAccessToken string) (string, error) {
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/phoneMethods/%s", userPrincipalName, mobilePhoneId)
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
@@ -164,14 +164,46 @@ func GetPhoneAuthenticatorInfo(userPrincipalName, mobilePhoneId, azureAccessToke
 	req.Header.Set("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	var phat PhoneAuthenticator
 	defer res.Body.Close()
 	// Decode from res.Body to struct
 	err = json.NewDecoder(res.Body).Decode(&phat)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return &phat, nil
+	return phat.PhoneNumber, nil
+}
+
+func MicrosoftAuthDevice(userPrincipalName, azureAccessToken string) (string, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/microsoftAuthenticatorMethods", userPrincipalName)
+	var getAuthApp GetMicrosoftAuthResp
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer res.Body.Close()
+
+	// byteData, err := io.ReadAll(res.Body) // Use it if you want to use unmarshall
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// err = json.Unmarshal(byteData, &getAuthApp)
+	err = json.NewDecoder(res.Body).Decode(&getAuthApp.Value)
+	if err != nil {
+		return "", err
+	}
+
+	return getAuthApp.Value.DisplayName, nil
 }
