@@ -90,7 +90,7 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 	// Calling Authententicators api here. using go routines for faster processing
 
 	// Handling phone authenticators
-	var wg *sync.WaitGroup
+	var wg sync.WaitGroup
 	wg.Add(4)
 	resultChan := make(chan AuthInfo, 4)
 	if lbl.Labelling.MfaMobileNumber != "" {
@@ -140,19 +140,19 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 	}
-
 	wg.Wait()
+	close(resultChan)
 
 	for x := range resultChan {
 		if x.Err == nil {
 			switch x.AuthName {
-			case "mobile":
+			case lbl.Labelling.MfaMobileNumber:
 				dataSent[lbl.Labelling.MfaMobileNumber] = x.Data
-			case "alternative mobile":
+			case lbl.Labelling.MfaAlternativeMobileNumber:
 				dataSent[lbl.Labelling.MfaAlternativeMobileNumber] = x.Data
-			case "office no":
+			case lbl.Labelling.MfaOfficeMobileNumber:
 				dataSent[lbl.Labelling.MfaOfficeMobileNumber] = x.Data
-			case "MSAuth":
+			case lbl.Labelling.MicrosoftAuthenticatorApp:
 				dataSent[lbl.Labelling.MicrosoftAuthenticatorApp] = x.Data
 			}
 		} else {
