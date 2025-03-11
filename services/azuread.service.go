@@ -53,7 +53,9 @@ type UserInfo struct {
 	UserprincipleName     string   `json:"userPrincipalName"`
 }
 
-type PhoneAuthenticator struct{}
+type PhoneAuthenticator struct {
+	PhoneNumber string `json:"phoneNumber"`
+}
 
 func GetAccessTokenPGgrant(details *tenants.AzureActiveDirectoryProduct) (*AccessTokenFromPG, error) {
 	// var buf bytes.Buffer // what does bytes.Buffer do
@@ -154,6 +156,22 @@ func GetUserInfo(userPrincipalName, azureAccessToken string) (*UserInfo, error) 
 	return &uI, nil
 }
 
-// func GetPhoneAuthenticatorInfo(userPrincipalName, mobilePhoneId, azureAccessToken string) (string, error) {
-
-// }
+func GetPhoneAuthenticatorInfo(userPrincipalName, mobilePhoneId, azureAccessToken string) (*PhoneAuthenticator, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/phoneMethods/%s", userPrincipalName, mobilePhoneId)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+	req.Header.Set("Authorization", accessToken)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	var phat PhoneAuthenticator
+	defer res.Body.Close()
+	// Decode from res.Body to struct
+	err = json.NewDecoder(res.Body).Decode(&phat)
+	if err != nil {
+		return nil, err
+	}
+	return &phat, nil
+}

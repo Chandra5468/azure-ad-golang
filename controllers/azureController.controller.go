@@ -77,8 +77,10 @@ func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 	dataSent[lbl.Labelling.UserprincipleName] = userInfo.UserprincipleName
 	dataSent[lbl.Labelling.DisplayName] = userInfo.DisplayName
 	dataSent[lbl.Labelling.AccountEnabled] = strconv.FormatBool(userInfo.AccountEnabled)
-
+	// dataSent[lbl.Labelling.BusinessPhones] = userInfo.BusinessPhones
+	dataSent[lbl.Labelling.LastPWDChangeDateTime] = userInfo.LastPWDChangeDateTime
 	// Calling Authententicators api here. using go routines for faster processing
+	// if dataSent[lbl.la]
 	helpers.ResponseFormatter(w, http.StatusOK, &dataSent)
 }
 
