@@ -16,6 +16,7 @@ import (
 type BodyCapture struct {
 	TenantId          string `json:"x-tenant-id"`
 	UserprincipleName string `json:"userPrincipalName"`
+	NewPassword       string `json:"newPassword"`
 }
 type AuthInfo struct {
 	AuthName string
@@ -191,4 +192,33 @@ func GetMicrosoftAuthenticatorApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.ResponseFormatter(w, http.StatusOK, data)
+}
+
+func ResetAzurePassword(w http.ResponseWriter, r *http.Request) {
+	var details BodyCapture
+	err := json.NewDecoder(r.Body).Decode(&details)
+	if err != nil {
+		helpers.ErrorFormatter(w, http.StatusBadRequest, errors.New("unable to decode body"))
+		return
+	}
+
+	tenantId := r.Header.Get("x-tenant-id")
+	if tenantId == "" {
+		tenantId = details.TenantId
+	}
+	azureAccessToken, err := redis.CacheRead(r.Context(), "azureAccessToken_"+tenantId)
+	if err != nil {
+		// Take response from helper to send error message
+		helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("unable to get access token from redis"))
+		return
+	}
+
+	statusCode, err := services.AzurePwdReset(details.UserprincipleName, azureAccessToken, details.NewPassword)
+
+	if err != nil {
+		helpers.ErrorFormatter(w, http.StatusBadRequest, err)
+		return
+	}
+
+	helpers.ResponseFormatter(w, statusCode, "Password has been reset successfully")
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -55,6 +56,10 @@ type UserInfo struct {
 
 type PhoneAuthenticator struct {
 	PhoneNumber string `json:"phoneNumber"`
+}
+type PwdFormat struct {
+	NewPassword               string `json:"newPassword"`
+	RequireChangeOnNextSignIn bool   `json:"requireChangeOnNextSignIn"`
 }
 
 func GetAccessTokenPGgrant(details *tenants.AzureActiveDirectoryProduct) (*AccessTokenFromPG, error) {
@@ -206,4 +211,29 @@ func MicrosoftAuthDevice(userPrincipalName, azureAccessToken string) (string, er
 	}
 
 	return getAuthApp.Value.DisplayName, nil
+}
+
+func AzurePwdReset(userPrincipalName, azureAccessToken, newPassword string) (int, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/methods/28c10230-6103-485e-b985-444c60001490/resetPassword", userPrincipalName)
+	dataType := PwdFormat{
+		NewPassword:               newPassword,
+		RequireChangeOnNextSignIn: true,
+	}
+	byteData, err := json.Marshal(&dataType)
+	if err != nil {
+		return 400, err
+	}
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(byteData))
+	if err != nil {
+		return 400, err
+	}
+	req.Header.Add("Content-type", "application/json")
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+	req.Header.Add("Authorization", accessToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 400, err
+	}
+	return res.StatusCode, nil
 }
