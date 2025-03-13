@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Chandra5468/azure-ad-golang/logging"
 	"github.com/Chandra5468/azure-ad-golang/models/mango"
 	"github.com/Chandra5468/azure-ad-golang/models/redis"
 	v1 "github.com/Chandra5468/azure-ad-golang/routes/v1"
@@ -49,6 +50,10 @@ func main() {
 
 	// Establish redis connection
 	redisClient := redis.CreateConnection()
+
+	// Establushing ES Client
+
+	logging.CreateESClient()
 
 	// initiate router
 

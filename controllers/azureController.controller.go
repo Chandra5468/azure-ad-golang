@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/Chandra5468/azure-ad-golang/helpers"
+	"github.com/Chandra5468/azure-ad-golang/logging"
 	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
 	"github.com/Chandra5468/azure-ad-golang/models/redis"
 	"github.com/Chandra5468/azure-ad-golang/services"
@@ -196,19 +198,28 @@ func GetMicrosoftAuthenticatorApp(w http.ResponseWriter, r *http.Request) {
 
 func ResetAzurePassword(w http.ResponseWriter, r *http.Request) {
 	var details BodyCapture
+	logEntry := &logging.AzureESOps{
+		ActionPerformed:   "Reset Password go",
+		ActionPerformedAt: time.Now(),
+	}
+	defer logging.LogIntoAzureIndex(logEntry)
 	err := json.NewDecoder(r.Body).Decode(&details)
+
 	if err != nil {
+		logEntry.Error = err
 		helpers.ErrorFormatter(w, http.StatusBadRequest, errors.New("unable to decode body"))
 		return
 	}
-
 	tenantId := r.Header.Get("x-tenant-id")
 	if tenantId == "" {
 		tenantId = details.TenantId
 	}
+	logEntry.ClientName = tenantId
+	logEntry.UserId = details.UserprincipleName
 	azureAccessToken, err := redis.CacheRead(r.Context(), "azureAccessToken_"+tenantId)
 	if err != nil {
 		// Take response from helper to send error message
+		logEntry.Error = err
 		helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("unable to get access token from redis"))
 		return
 	}
@@ -216,9 +227,10 @@ func ResetAzurePassword(w http.ResponseWriter, r *http.Request) {
 	statusCode, err := services.AzurePwdReset(details.UserprincipleName, azureAccessToken, details.NewPassword)
 
 	if err != nil {
+		logEntry.Error = err
 		helpers.ErrorFormatter(w, http.StatusBadRequest, err)
 		return
 	}
-
+	logEntry.Successfull = true
 	helpers.ResponseFormatter(w, statusCode, "Password has been reset successfully")
 }
