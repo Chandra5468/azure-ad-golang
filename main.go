@@ -18,6 +18,50 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var allowedOrigins = map[string]bool{
+	"http://localhost:7001": true,
+}
+
+// NOTE : Most cors implmentations are for browsers. Not for postman or server-server communication.
+/*
+	Remove this comment later -- For self understanding.....
+	server doesn’t enforce CORS restrictions—browsers do. The server’s job is to set the appropriate headers and optionally reject requests (e.g., for security).
+	If you don’t add logic to reject unallowed origins or methods, the request will still reach your handler, and the server will respond.
+	The browser will then decide whether to let the client read the response based on the CORS headers.
+
+	EX:
+	If you set Access-Control-Allow-Origin: http://localhost:7002 but don’t check the origin and call next.ServeHTTP(w, r) anyway, a request from http://evil.com will still be processed by your server.
+	The browser will block the response for http://evil.com because the origin doesn’t match, but your server still did the work unless you explicitly stopped it.
+*/
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		if origin == "" { // This is for postman or server to server kind of requests
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// check if origin is allowed
+		if !allowedOrigins[origin] {
+			slog.Warn("CORS : unallowed origin", "origin", origin)
+			http.Error(w, "CORS: Origin not allowed", http.StatusForbidden)
+			return
+		}
+		// Set cors headers
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		// w.Header().Set("Access-Control-Allow-Credentials", "true") // If this is set true, then Allow-Origin can never be *
+
+		if r.Method == http.MethodOptions { // for pre-flight requests
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	// Loading env file based on environment local, staging, or production
 	env := os.Getenv("APP_ENV")
@@ -32,17 +76,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("error loading %s file: %v", envFile, err.Error())
 	}
-
-	// initiate cors
-	/*
-		Cors like accept headers, accept request types etc.... for all responses here
-	*/
-
-	/* Implement these body parser in golang
-
-	   app.use(bodyParser.urlencoded({extended: false}));
-	   app.use(bodyParser.json());
-	*/
 
 	// Establish Mongodb connection
 	client := mango.CreateConnection()
@@ -64,9 +97,11 @@ func main() {
 	// Register routes from each file
 
 	v1.AzureRoutes(router)
+	// Wrapping all routes with cors middleware
+	handler := corsMiddleware(router)
 	server := http.Server{
 		Addr:    os.Getenv("APP_URL"),
-		Handler: router,
+		Handler: handler,
 	}
 	// log.Fatal(http.ListenAndServe(os.Getenv("APP_URL"), router))
 
