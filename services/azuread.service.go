@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -235,5 +236,90 @@ func AzurePwdReset(userPrincipalName, azureAccessToken, newPassword string) (int
 	if err != nil {
 		return 400, err
 	}
+	defer res.Body.Close()
 	return res.StatusCode, nil
+}
+
+func DeletePhoneAuthenticators(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/phoneMethods/3179e48a-750b-4051-897c-87b9720928f7", userPrincipalName)
+
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+
+	req.Header.Add("Authorization", accessToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+		return uint16(res.StatusCode), err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 204 {
+		return uint16(res.StatusCode), nil
+	} else {
+		return 0, err
+	}
+}
+
+func DeleteMicrosoftAuthenticators(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/microsoftAuthenticatorMethods/3179e48a-750b-4051-897c-87b9720928f7", userPrincipalName)
+
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+
+	req.Header.Add("Authorization", accessToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+		return uint16(res.StatusCode), err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 204 {
+		return uint16(res.StatusCode), nil
+	} else {
+		return 0, err
+	}
+}
+
+func DeleteOAthApps(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/softwareOathMethods", userPrincipalName)
+
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+	req.Header.Add("Authorization", accessToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+		return uint16(res.StatusCode), err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 204 {
+		return uint16(res.StatusCode), nil
+	} else {
+		return 0, err
+	}
+}
+
+func DeleteEmailAuthenticator(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/emailMethods/3ddfcfc8-9383-446f-83cc-3ab9be4be18f", userPrincipalName)
+
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+
+	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
+	req.Header.Add("Authorization", accessToken)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+		return uint16(res.StatusCode), err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 204 {
+		return uint16(res.StatusCode), nil
+	} else {
+		return 0, err
+	}
 }

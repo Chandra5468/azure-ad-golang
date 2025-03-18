@@ -26,6 +26,12 @@ type AuthInfo struct {
 	Err      error
 }
 
+type DeleteAuthInfo struct {
+	Status   uint16
+	Err      error
+	AuthName string
+}
+
 func GetUserAllInfo(w http.ResponseWriter, r *http.Request) {
 	var details BodyCapture
 	// Not using firstName and lastName based search
@@ -233,4 +239,86 @@ func ResetAzurePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	logEntry.Successfull = true
 	helpers.ResponseFormatter(w, statusCode, "Password has been reset successfully")
+}
+
+func DeleteConfiguredAuthenticators(w http.ResponseWriter, r *http.Request) {
+	var details BodyCapture
+
+	err := json.NewDecoder(r.Body).Decode(&details)
+
+	if err != nil {
+		helpers.ErrorFormatter(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	tenantId := r.Header.Get("x-tenant-id")
+	if tenantId == "" {
+		tenantId = details.TenantId
+	}
+
+	azureAccessToken, err := redis.CacheRead(r.Context(), "azureAccessToken_"+tenantId)
+
+	if err != nil {
+		helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("unable to get access token from redis"))
+		return
+	}
+	resultChan := make(chan DeleteAuthInfo, 4)
+	var wg sync.WaitGroup
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		status, err := services.DeleteEmailAuthenticator(azureAccessToken, details.UserprincipleName, r.Context())
+		resultChan <- DeleteAuthInfo{
+			Status:   status,
+			Err:      err,
+			AuthName: "Email",
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		status, err := services.DeleteMicrosoftAuthenticators(azureAccessToken, details.UserprincipleName, r.Context())
+		resultChan <- DeleteAuthInfo{
+			Status:   status,
+			Err:      err,
+			AuthName: "MSAuth",
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		status, err := services.DeleteOAthApps(azureAccessToken, details.UserprincipleName, r.Context())
+		resultChan <- DeleteAuthInfo{
+			Status:   status,
+			Err:      err,
+			AuthName: "OAthApps",
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		// currently only deleting 1 phone authenticator device
+		status, err := services.DeletePhoneAuthenticators(azureAccessToken, details.UserprincipleName, r.Context())
+		resultChan <- DeleteAuthInfo{
+			Status:   status,
+			Err:      err,
+			AuthName: "Phones",
+		}
+	}()
+	wg.Wait()
+
+	for x := range resultChan {
+		if x.Status == 400 {
+			switch x.AuthName {
+			case "Email":
+				services.DeleteEmailAuthenticator(azureAccessToken, details.UserprincipleName, r.Context())
+			case "Phones":
+				services.DeletePhoneAuthenticators(azureAccessToken, details.UserprincipleName, r.Context())
+			case "OAthApps":
+				services.DeleteOAthApps(azureAccessToken, details.UserprincipleName, r.Context())
+			case "MSAuth":
+				services.DeleteMicrosoftAuthenticators(azureAccessToken, details.UserprincipleName, r.Context())
+			}
+		}
+	}
+
+	helpers.ResponseFormatter(w, http.StatusNoContent, "all authenticators are successfully")
+
 }
