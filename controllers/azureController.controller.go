@@ -243,10 +243,15 @@ func ResetAzurePassword(w http.ResponseWriter, r *http.Request) {
 
 func DeleteConfiguredAuthenticators(w http.ResponseWriter, r *http.Request) {
 	var details BodyCapture
-
+	logEntry := &logging.AzureESOps{
+		ActionPerformed:   "Delete All Auths",
+		ActionPerformedAt: time.Now(),
+	}
+	defer logging.LogIntoAzureIndex(logEntry)
 	err := json.NewDecoder(r.Body).Decode(&details)
 
 	if err != nil {
+		logEntry.Error = err
 		helpers.ErrorFormatter(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -255,10 +260,12 @@ func DeleteConfiguredAuthenticators(w http.ResponseWriter, r *http.Request) {
 	if tenantId == "" {
 		tenantId = details.TenantId
 	}
-
+	logEntry.ClientName = tenantId
+	logEntry.UserId = details.UserprincipleName
 	azureAccessToken, err := redis.CacheRead(r.Context(), "azureAccessToken_"+tenantId)
 
 	if err != nil {
+		logEntry.Error = err
 		helpers.ErrorFormatter(w, http.StatusInternalServerError, errors.New("unable to get access token from redis"))
 		return
 	}
@@ -318,7 +325,7 @@ func DeleteConfiguredAuthenticators(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
+	logEntry.Successfull = true
 	helpers.ResponseFormatter(w, http.StatusNoContent, "all authenticators are successfully")
 
 }
