@@ -310,7 +310,7 @@ func DeleteConfiguredAuthenticators(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	wg.Wait()
-
+	close(resultChan)
 	for x := range resultChan {
 		if x.Status == 400 {
 			switch x.AuthName {

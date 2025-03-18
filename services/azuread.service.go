@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Chandra5468/azure-ad-golang/models/mango/tenants"
 )
@@ -243,7 +244,9 @@ func AzurePwdReset(userPrincipalName, azureAccessToken, newPassword string) (int
 func DeletePhoneAuthenticators(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/phoneMethods/3179e48a-750b-4051-897c-87b9720928f7", userPrincipalName)
 
-	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	contextWithTime, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(contextWithTime, http.MethodDelete, url, nil)
 
 	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
 
@@ -265,7 +268,9 @@ func DeletePhoneAuthenticators(azureAccessToken, userPrincipalName string, ctx c
 func DeleteMicrosoftAuthenticators(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/microsoftAuthenticatorMethods/3179e48a-750b-4051-897c-87b9720928f7", userPrincipalName)
 
-	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	contextWithTime, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(contextWithTime, http.MethodDelete, url, nil)
 
 	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
 
@@ -287,7 +292,9 @@ func DeleteMicrosoftAuthenticators(azureAccessToken, userPrincipalName string, c
 func DeleteOAthApps(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/softwareOathMethods", userPrincipalName)
 
-	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	contextWithTime, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(contextWithTime, http.MethodDelete, url, nil)
 	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
 	req.Header.Add("Authorization", accessToken)
 
@@ -307,8 +314,9 @@ func DeleteOAthApps(azureAccessToken, userPrincipalName string, ctx context.Cont
 func DeleteEmailAuthenticator(azureAccessToken, userPrincipalName string, ctx context.Context) (uint16, error) {
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/authentication/emailMethods/3ddfcfc8-9383-446f-83cc-3ab9be4be18f", userPrincipalName)
 
-	req, _ := http.NewRequest(http.MethodDelete, url, nil)
-
+	contextWithTime, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(contextWithTime, http.MethodDelete, url, nil)
 	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
 	req.Header.Add("Authorization", accessToken)
 	res, err := http.DefaultClient.Do(req)
