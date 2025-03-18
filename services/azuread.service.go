@@ -253,7 +253,7 @@ func DeletePhoneAuthenticators(azureAccessToken, userPrincipalName string, ctx c
 	req.Header.Add("Authorization", accessToken)
 
 	res, err := http.DefaultClient.Do(req)
-	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+	if res.StatusCode == 400 || res.StatusCode == 404 {
 		return uint16(res.StatusCode), err
 	}
 	defer res.Body.Close()
@@ -277,7 +277,7 @@ func DeleteMicrosoftAuthenticators(azureAccessToken, userPrincipalName string, c
 	req.Header.Add("Authorization", accessToken)
 
 	res, err := http.DefaultClient.Do(req)
-	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+	if res.StatusCode == 400 || res.StatusCode == 404 {
 		return uint16(res.StatusCode), err
 	}
 	defer res.Body.Close()
@@ -299,7 +299,7 @@ func DeleteOAthApps(azureAccessToken, userPrincipalName string, ctx context.Cont
 	req.Header.Add("Authorization", accessToken)
 
 	res, err := http.DefaultClient.Do(req)
-	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+	if res.StatusCode == 400 || res.StatusCode == 404 {
 		return uint16(res.StatusCode), err
 	}
 	defer res.Body.Close()
@@ -320,7 +320,7 @@ func DeleteEmailAuthenticator(azureAccessToken, userPrincipalName string, ctx co
 	accessToken := fmt.Sprintf("Bearer %s", azureAccessToken)
 	req.Header.Add("Authorization", accessToken)
 	res, err := http.DefaultClient.Do(req)
-	if err != nil && (res.StatusCode == 400 || res.StatusCode == 404) {
+	if res.StatusCode == 400 || res.StatusCode == 404 {
 		return uint16(res.StatusCode), err
 	}
 	defer res.Body.Close()
