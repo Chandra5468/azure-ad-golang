@@ -49,9 +49,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		// Set cors headers
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Add("Access-Control-Allow-Origin", origin)
+		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		// w.Header().Set("Access-Control-Allow-Credentials", "true") // If this is set true, then Allow-Origin can never be *
 
 		if r.Method == http.MethodOptions { // for pre-flight requests
