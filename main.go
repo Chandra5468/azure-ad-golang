@@ -112,7 +112,7 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		err := (server.ListenAndServe())
+		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			slog.Error("server failed to start", slog.String("error", err.Error()))
 		}
